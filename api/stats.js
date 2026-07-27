@@ -188,7 +188,7 @@ export default async function handler(req, res) {
           ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
           <!-- Translucent Dark Overlay (Adjust fill-opacity to tweak overall card transparency) -->
-          <rect width="740" height="430" fill="#0b1120" fill-opacity="0.65"/>
+          <rect width="740" height="430" fill="#0b1120" fill-opacity="0.30"/>
           <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.15"/>
 
           <!-- Header -->
