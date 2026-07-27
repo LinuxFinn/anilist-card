@@ -1,5 +1,5 @@
 // CUSTOM CONFIGURATION
-const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg'; // Change to your background URL
+const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/anilist-card/main/1266658.jpg'; // Change to your background URL
 const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
 
 // Helper to escape special XML characters for SVG compliance
