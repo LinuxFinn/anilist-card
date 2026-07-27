@@ -1,7 +1,5 @@
 {
-  "functions": {
-    "api/stats.jsx": {
-      "runtime": "edge"
-    }
-  }
+  "rewrites": [
+    { "source": "/api/stats", "destination": "/api/stats.jsx" }
+  ]
 }
