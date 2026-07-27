@@ -1,6 +1,6 @@
 // CUSTOM CONFIGURATION
 const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/anilist-card/main/1266658.jpg'; // Direct raw repo link
-const CUSTOM_BIO = 'Just a guy whole fell in love with the Eastern way of storytelling.'; // Fallback bio if empty on AniList
+const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
 
 // Helper to escape special XML characters for SVG compliance
 function escapeXml(unsafe) {
@@ -12,6 +12,21 @@ function escapeXml(unsafe) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+// Helper to fetch external image and convert to Base64 data URL
+async function fetchAsBase64(url) {
+  if (!url) return '';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return '';
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  } catch (err) {
+    return '';
+  }
 }
 
 async function fetchAniListStats(username) {
@@ -116,7 +131,31 @@ export default async function handler(req, res) {
     const characterList = user?.favourites?.characters?.nodes || [];
     const staffList = user?.favourites?.staff?.nodes || [];
 
-    // Clean bio (strip markdown/HTML tags and escape XML)
+    // Fetch images as base64 in parallel
+    const [bgImageBase64, avatarBase64] = await Promise.all([
+      fetchAsBase64(BG_IMAGE_URL),
+      fetchAsBase64(user?.avatar?.large)
+    ]);
+
+    // Fetch base64 for items list
+    const processItemsBase64 = async (items) => {
+      return Promise.all(
+        items.map(async (item) => {
+          const imgUrl = item?.coverImage?.medium || item?.image?.medium || '';
+          const base64 = await fetchAsBase64(imgUrl);
+          return { ...item, base64Image: base64 };
+        })
+      );
+    };
+
+    const [animeWithBase64, mangaWithBase64, charWithBase64, staffWithBase64] = await Promise.all([
+      processItemsBase64(animeList),
+      processItemsBase64(mangaList),
+      processItemsBase64(characterList),
+      processItemsBase64(staffList),
+    ]);
+
+    // Clean bio
     const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '').replace(/[\r\n]+/g, ' ') : CUSTOM_BIO;
     const truncatedBio = rawBio.length > 70 ? rawBio.substring(0, 67) + '...' : rawBio;
     const bioText = escapeXml(truncatedBio);
@@ -161,16 +200,15 @@ export default async function handler(req, res) {
       `;
     };
 
-    // Render Items with unique category prefixes for unique clipPath IDs
+    // Render Items using base64 image strings
     const renderItems = (items, categoryPrefix, isPerson = false) => {
       const ranks = ['1st', '2nd', '3rd'];
       return items.slice(0, 3).map((item, idx) => {
         const title = getFormattedName(item, isPerson);
         const sub = ranks[idx] || '';
-        const img = escapeXml(item?.coverImage?.medium || item?.image?.medium || '');
+        const img = item.base64Image;
         const y = idx * 56;
         
-        // Dimensions for circles vs rectangular media covers
         const imgWidth = isPerson ? 36 : 32;
         const imgHeight = isPerson ? 36 : 46;
         const clipId = `clip-${categoryPrefix}-${idx}`;
@@ -199,8 +237,8 @@ export default async function handler(req, res) {
         </defs>
 
         <g clip-path="url(#card-clip)">
-          <!-- Background Image (Widescreen 16:9 ratio) -->
-          ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="940" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
+          <!-- Background Image -->
+          ${bgImageBase64 ? `<image href="${bgImageBase64}" width="940" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
           <!-- Dimming Layer -->
           <rect width="940" height="430" fill="#000000" fill-opacity="0.45"/>
@@ -208,9 +246,9 @@ export default async function handler(req, res) {
 
           <!-- Header -->
           <g transform="translate(24, 20)">
-            ${user?.avatar?.large ? `
+            ${avatarBase64 ? `
               <clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
-              <image href="${escapeXml(user.avatar.large)}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
+              <image href="${avatarBase64}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
             ` : ''}
             <text x="60" y="24" fill="#ffffff" font-size="20" font-weight="bold" font-family="sans-serif">${escapeXml(user?.name || username)}</text>
             <text x="60" y="40" fill="#e2e8f0" font-size="11" font-family="sans-serif">${bioText}</text>
@@ -260,13 +298,13 @@ export default async function handler(req, res) {
             </g>
           </g>
 
-          <!-- Content Columns (4 Columns layout) -->
+          <!-- Content Columns -->
           <g transform="translate(24, 192)">
             <!-- Top Anime -->
             <g transform="translate(0, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
               <g transform="translate(0, 30)">
-                ${renderItems(animeList, 'anime', false)}
+                ${renderItems(animeWithBase64, 'anime', false)}
               </g>
             </g>
 
@@ -274,7 +312,7 @@ export default async function handler(req, res) {
             <g transform="translate(225, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
               <g transform="translate(0, 30)">
-                ${renderItems(mangaList, 'manga', false)}
+                ${renderItems(mangaWithBase64, 'manga', false)}
               </g>
             </g>
 
@@ -282,7 +320,7 @@ export default async function handler(req, res) {
             <g transform="translate(450, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
               <g transform="translate(0, 30)">
-                ${renderItems(characterList, 'char', true)}
+                ${renderItems(charWithBase64, 'char', true)}
               </g>
             </g>
 
@@ -290,7 +328,7 @@ export default async function handler(req, res) {
             <g transform="translate(675, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 STAFF</text>
               <g transform="translate(0, 30)">
-                ${renderItems(staffList, 'staff', true)}
+                ${renderItems(staffWithBase64, 'staff', true)}
               </g>
             </g>
           </g>
@@ -298,12 +336,8 @@ export default async function handler(req, res) {
       </svg>
     `;
 
-    // Force browsers and Vercel CDN not to cache stale data
     res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader(
-      'Cache-Control',
-      'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
-    );
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
