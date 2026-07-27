@@ -1,6 +1,6 @@
 // CUSTOM CONFIGURATION
 const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/anilist-card/main/1266658.jpg'; // Direct raw repo link
-const CUSTOM_BIO = 'Just a guy who fell in love with Eastern (mostly Japan) story telling.'; // Bio displayed on the card
+const CUSTOM_BIO = 'Just a guy who fell in love with Eastern (mostly Japanese) story telling.'; // Bio displayed on the card
 
 // Helper to escape special XML characters for SVG compliance
 function escapeXml(unsafe) {
