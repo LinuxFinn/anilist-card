@@ -124,14 +124,12 @@ export default async function handler(req, res) {
 
     // Helper for multiline wrapping titles
     const renderWrappedTitle = (text, x) => {
-      const escapedText = escapeXml(text);
       const maxCharsPerLine = 15;
       
-      if (escapedText.length <= maxCharsPerLine) {
-        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${escapedText}</text>`;
+      if (text.length <= maxCharsPerLine) {
+        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${escapeXml(text)}</text>`;
       }
 
-      // Split into 2 lines cleanly
       const words = text.split(' ');
       let line1 = '';
       let line2 = '';
@@ -171,7 +169,7 @@ export default async function handler(req, res) {
               <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
             ` : ''}
             ${renderWrappedTitle(title, 44)}
-            <text x="44" y="38" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
+            <text x="44" y="38" fill="#cbd5e1" font-size="10" font-family="sans-serif">${sub}</text>
           </g>
         `;
       }).join('');
@@ -189,9 +187,9 @@ export default async function handler(req, res) {
           <!-- Background Image -->
           ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
-          <!-- Dark Overlay -->
-          <rect width="740" height="430" fill="#0f172a" fill-opacity="0.88"/>
-          <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.1"/>
+          <!-- Translucent Dark Overlay (Adjust fill-opacity to tweak overall card transparency) -->
+          <rect width="740" height="430" fill="#0b1120" fill-opacity="0.65"/>
+          <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.15"/>
 
           <!-- Header -->
           <g transform="translate(24, 20)">
@@ -200,50 +198,50 @@ export default async function handler(req, res) {
               <image href="${escapeXml(user.avatar.large)}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
             ` : ''}
             <text x="60" y="24" fill="#ffffff" font-size="20" font-weight="bold" font-family="sans-serif">${escapeXml(user?.name || username)}</text>
-            <text x="60" y="40" fill="#94a3b8" font-size="11" font-family="sans-serif">${bioText}</text>
+            <text x="60" y="40" fill="#cbd5e1" font-size="11" font-family="sans-serif">${bioText}</text>
             
             <circle cx="560" cy="16" r="4" fill="#4ade80"/>
             <text x="572" y="20" fill="#4ade80" font-size="11" font-weight="bold" font-family="sans-serif" letter-spacing="0.5">SYNCED WITH ANILIST</text>
           </g>
 
-          <!-- Stacked Overall Stats Bar -->
+          <!-- Stacked Overall Stats Bar (Semi-transparent background) -->
           <g transform="translate(24, 82)">
-            <rect width="692" height="88" rx="10" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.05"/>
+            <rect width="692" height="88" rx="10" fill="#000000" fill-opacity="0.3" stroke="#ffffff" stroke-opacity="0.1"/>
             
             <!-- Anime Row -->
             <g transform="translate(16, 12)">
               <text x="0" y="16" fill="#38bdf8" font-size="10" font-weight="bold" font-family="sans-serif">ANIME</text>
               
               <text x="110" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeCount}</text>
-              <text x="110" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Total Anime</text>
+              <text x="110" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Total Anime</text>
 
               <text x="250" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${episodes.toLocaleString()}</text>
-              <text x="250" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Episodes</text>
+              <text x="250" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Episodes</text>
 
               <text x="390" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeDays}</text>
-              <text x="390" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Days Watched</text>
+              <text x="390" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Days Watched</text>
 
               <text x="540" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeMean}</text>
-              <text x="540" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Mean Score</text>
+              <text x="540" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Mean Score</text>
             </g>
 
-            <line x1="16" y1="46" x2="676" y2="46" stroke="#ffffff" stroke-opacity="0.08"/>
+            <line x1="16" y1="46" x2="676" y2="46" stroke="#ffffff" stroke-opacity="0.1"/>
 
             <!-- Manga Row -->
             <g transform="translate(16, 52)">
               <text x="0" y="16" fill="#34d399" font-size="10" font-weight="bold" font-family="sans-serif">MANGA</text>
 
               <text x="110" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${mangaCount}</text>
-              <text x="110" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Total Manga</text>
+              <text x="110" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Total Manga</text>
 
               <text x="250" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${chapters.toLocaleString()}</text>
-              <text x="250" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Chapters</text>
+              <text x="250" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Chapters</text>
 
               <text x="390" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${volumes.toLocaleString()}</text>
-              <text x="390" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Volumes</text>
+              <text x="390" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Volumes</text>
 
               <text x="540" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${mangaMean}</text>
-              <text x="540" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Mean Score</text>
+              <text x="540" y="26" fill="#cbd5e1" font-size="9" font-family="sans-serif">Mean Score</text>
             </g>
           </g>
 
@@ -251,7 +249,7 @@ export default async function handler(req, res) {
           <g transform="translate(24, 192)">
             <!-- Top Anime -->
             <g transform="translate(0, 0)">
-              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
+              <text x="0" y="15" fill="#cbd5e1" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
               <g transform="translate(0, 30)">
                 ${renderItems(animeList, i => i?.episodes ? `${i.episodes} Eps` : 'N/A')}
               </g>
@@ -259,7 +257,7 @@ export default async function handler(req, res) {
 
             <!-- Top Manga -->
             <g transform="translate(230, 0)">
-              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
+              <text x="0" y="15" fill="#cbd5e1" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
               <g transform="translate(0, 30)">
                 ${renderItems(mangaList, i => i?.chapters ? `${i.chapters} Chaps` : 'N/A')}
               </g>
@@ -267,7 +265,7 @@ export default async function handler(req, res) {
 
             <!-- Top Characters -->
             <g transform="translate(460, 0)">
-              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
+              <text x="0" y="15" fill="#cbd5e1" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
               <g transform="translate(0, 30)">
                 ${renderItems(characterList, () => 'Favorite', true)}
               </g>
