@@ -1,6 +1,18 @@
 // CUSTOM CONFIGURATION
-const BG_IMAGE_URL = 'https://github.com/LinuxFinn/anilist-card/blob/main/1266658.jpg'; // Change to your background URL
+const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg'; // Change to your background URL
 const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
+
+// Helper to escape special XML characters for SVG compliance
+function escapeXml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
 
 async function fetchAniListStats(username) {
   const query = `
@@ -95,9 +107,10 @@ export default async function handler(req, res) {
     const mangaList = user?.favourites?.manga?.nodes || [];
     const characterList = user?.favourites?.characters?.nodes || [];
 
-    // Bio handling (strips basic HTML tags if AniList about has markdown/html)
-    const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '') : CUSTOM_BIO;
-    const bioText = rawBio.length > 55 ? rawBio.substring(0, 52) + '...' : rawBio;
+    // Clean bio (strip markdown/HTML tags and escape XML)
+    const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '').replace(/[\r\n]+/g, ' ') : CUSTOM_BIO;
+    const truncatedBio = rawBio.length > 55 ? rawBio.substring(0, 52) + '...' : rawBio;
+    const bioText = escapeXml(truncatedBio);
 
     // Formatting Name Helper
     const getFormattedName = (item, isCharacter) => {
@@ -110,12 +123,15 @@ export default async function handler(req, res) {
     };
 
     // Helper for multiline wrapping titles
-    const renderWrappedTitle = (text, x, isCharacter) => {
+    const renderWrappedTitle = (text, x) => {
+      const escapedText = escapeXml(text);
       const maxCharsPerLine = 15;
-      if (text.length <= maxCharsPerLine) {
-        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${text}</text>`;
+      
+      if (escapedText.length <= maxCharsPerLine) {
+        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${escapedText}</text>`;
       }
-      // Split into 2 lines
+
+      // Split into 2 lines cleanly
       const words = text.split(' ');
       let line1 = '';
       let line2 = '';
@@ -133,8 +149,8 @@ export default async function handler(req, res) {
       }
 
       return `
-        <text x="${x}" y="14" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${line1}</text>
-        <text x="${x}" y="26" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${line2}</text>
+        <text x="${x}" y="14" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${escapeXml(line1)}</text>
+        <text x="${x}" y="26" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${escapeXml(line2)}</text>
       `;
     };
 
@@ -142,8 +158,8 @@ export default async function handler(req, res) {
     const renderItems = (items, getType, isCharacter = false) => {
       return items.slice(0, 3).map((item, idx) => {
         const title = getFormattedName(item, isCharacter);
-        const sub = getType(item);
-        const img = item?.coverImage?.medium || item?.image?.medium || '';
+        const sub = escapeXml(getType(item));
+        const img = escapeXml(item?.coverImage?.medium || item?.image?.medium || '');
         const y = idx * 56;
 
         return `
@@ -154,7 +170,7 @@ export default async function handler(req, res) {
               </clipPath>
               <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
             ` : ''}
-            ${renderWrappedTitle(title, 44, isCharacter)}
+            ${renderWrappedTitle(title, 44)}
             <text x="44" y="38" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
           </g>
         `;
@@ -171,7 +187,7 @@ export default async function handler(req, res) {
 
         <g clip-path="url(#card-clip)">
           <!-- Background Image -->
-          ${BG_IMAGE_URL ? `<image href="${BG_IMAGE_URL}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
+          ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
           <!-- Dark Overlay -->
           <rect width="740" height="430" fill="#0f172a" fill-opacity="0.88"/>
@@ -181,9 +197,9 @@ export default async function handler(req, res) {
           <g transform="translate(24, 20)">
             ${user?.avatar?.large ? `
               <clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
-              <image href="${user.avatar.large}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
+              <image href="${escapeXml(user.avatar.large)}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
             ` : ''}
-            <text x="60" y="24" fill="#ffffff" font-size="20" font-weight="bold" font-family="sans-serif">${user?.name || username}</text>
+            <text x="60" y="24" fill="#ffffff" font-size="20" font-weight="bold" font-family="sans-serif">${escapeXml(user?.name || username)}</text>
             <text x="60" y="40" fill="#94a3b8" font-size="11" font-family="sans-serif">${bioText}</text>
             
             <circle cx="560" cy="16" r="4" fill="#4ade80"/>
