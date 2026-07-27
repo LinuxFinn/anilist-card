@@ -1,5 +1,9 @@
 import { ImageResponse } from '@vercel/og';
 
+export const config = {
+  runtime: 'edge',
+};
+
 async function fetchAniListStats(username) {
   const query = `
     query ($username: String) {
@@ -79,7 +83,6 @@ export default async function handler(req) {
             fontFamily: 'sans-serif',
           }}
         >
-          {/* Card Container */}
           <div
             style={{
               display: 'flex',
@@ -132,9 +135,9 @@ export default async function handler(req) {
               </div>
             </div>
 
-            {/* Top 3 Columns */}
+            {/* Columns */}
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-              {/* Anime Column */}
+              {/* Anime */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 ANIME
@@ -152,7 +155,7 @@ export default async function handler(req) {
                 ))}
               </div>
 
-              {/* Manga Column */}
+              {/* Manga */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 MANGA
@@ -170,7 +173,7 @@ export default async function handler(req) {
                 ))}
               </div>
 
-              {/* Characters Column */}
+              {/* Characters */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 CHARACTERS
