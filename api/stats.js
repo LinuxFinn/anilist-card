@@ -169,14 +169,18 @@ export default async function handler(req, res) {
         const sub = ranks[idx] || '';
         const img = escapeXml(item?.coverImage?.medium || item?.image?.medium || '');
         const y = idx * 56;
+        
+        // Dimensions for circles vs rectangular media covers
+        const imgWidth = isPerson ? 36 : 32;
+        const imgHeight = isPerson ? 36 : 46;
 
         return `
           <g transform="translate(0, ${y})">
             ${img ? `
               <clipPath id="clip-${isPerson ? 'person' : 'media'}-${idx}-${Math.random()}">
-                <rect width="${isPerson ? '36' : '32'}" height="${isPerson ? '36' : '46'}" rx="${isPerson ? '18' : '4'}"/>
+                ${isPerson ? `<circle cx="18" cy="18" r="18"/>` : `<rect width="${imgWidth}" height="${imgHeight}" rx="4"/>`}
               </clipPath>
-              <image href="${img}" width="${isPerson ? '36' : '32'}" height="${isPerson ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isPerson ? 'person' : 'media'}-${idx})"/>
+              <image href="${img}" width="${imgWidth}" height="${imgHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isPerson ? 'person' : 'media'}-${idx})"/>
             ` : ''}
             ${renderWrappedTitle(title, 44)}
             <text x="44" y="38" fill="#e2e8f0" font-size="10" font-family="sans-serif">${sub}</text>
