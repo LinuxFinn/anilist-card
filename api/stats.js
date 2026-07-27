@@ -1,15 +1,26 @@
+// CUSTOM CONFIGURATION
+const BG_IMAGE_URL = 'https://github.com/LinuxFinn/anilist-card/blob/main/1266658.jpg'; // Change to your background URL
+const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
+
 async function fetchAniListStats(username) {
   const query = `
     query ($username: String) {
       User(name: $username) {
         name
+        about
         avatar { large }
         statistics {
           anime {
+            count
+            episodesWatched
             minutesWatched
+            meanScore
           }
           manga {
+            count
             chaptersRead
+            volumesRead
+            meanScore
           }
         }
         favourites {
@@ -67,105 +78,183 @@ export default async function handler(req, res) {
     const username = req.query?.username || 'LinuxFinn';
     const user = await fetchAniListStats(username);
 
-    const minutesWatched = user?.statistics?.anime?.minutesWatched || 0;
-    const animeHours = Math.floor(minutesWatched / 60);
-    const animeDays = Math.floor(animeHours / 24);
-    const chapters = user?.statistics?.manga?.chaptersRead || 0;
+    // Anime Stats
+    const animeCount = user?.statistics?.anime?.count || 0;
+    const episodes = user?.statistics?.anime?.episodesWatched || 0;
+    const animeDays = ( (user?.statistics?.anime?.minutesWatched || 0) / 1440 ).toFixed(1);
+    const animeMean = user?.statistics?.anime?.meanScore || 0;
 
+    // Manga Stats
+    const mangaCount = user?.statistics?.manga?.count || 0;
+    const chapters = user?.statistics?.manga?.chaptersRead || 0;
+    const volumes = user?.statistics?.manga?.volumesRead || 0;
+    const mangaMean = user?.statistics?.manga?.meanScore || 0;
+
+    // Favorites
     const animeList = user?.favourites?.anime?.nodes || [];
     const mangaList = user?.favourites?.manga?.nodes || [];
     const characterList = user?.favourites?.characters?.nodes || [];
 
-    // Helper to get formatted title/name
+    // Bio handling (strips basic HTML tags if AniList about has markdown/html)
+    const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '') : CUSTOM_BIO;
+    const bioText = rawBio.length > 55 ? rawBio.substring(0, 52) + '...' : rawBio;
+
+    // Formatting Name Helper
     const getFormattedName = (item, isCharacter) => {
       if (isCharacter) {
         const first = item?.name?.first;
         const last = item?.name?.last;
-        // If both first and last exist, format as Western "First Last"
-        if (first && last) {
-          return `${first} ${last}`;
-        }
-        return item?.name?.full || 'N/A';
+        return (first && last) ? `${first} ${last}` : (item?.name?.full || 'N/A');
       }
-      // Prioritize official English title over Romaji
       return item?.title?.english || item?.title?.romaji || 'N/A';
     };
 
-    // Render List Items with proper proportions
+    // Helper for multiline wrapping titles
+    const renderWrappedTitle = (text, x, isCharacter) => {
+      const maxCharsPerLine = 15;
+      if (text.length <= maxCharsPerLine) {
+        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${text}</text>`;
+      }
+      // Split into 2 lines
+      const words = text.split(' ');
+      let line1 = '';
+      let line2 = '';
+      
+      for (const word of words) {
+        if ((line1 + word).length <= maxCharsPerLine) {
+          line1 += (line1 ? ' ' : '') + word;
+        } else {
+          line2 += (line2 ? ' ' : '') + word;
+        }
+      }
+      
+      if (line2.length > maxCharsPerLine) {
+        line2 = line2.substring(0, maxCharsPerLine - 3) + '...';
+      }
+
+      return `
+        <text x="${x}" y="14" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${line1}</text>
+        <text x="${x}" y="26" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${line2}</text>
+      `;
+    };
+
+    // Render Items
     const renderItems = (items, getType, isCharacter = false) => {
       return items.slice(0, 3).map((item, idx) => {
         const title = getFormattedName(item, isCharacter);
         const sub = getType(item);
         const img = item?.coverImage?.medium || item?.image?.medium || '';
-        const y = idx * 52;
+        const y = idx * 56;
 
         return `
           <g transform="translate(0, ${y})">
             ${img ? `
               <clipPath id="clip-${isCharacter ? 'char' : 'media'}-${idx}">
-                <rect width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '44'}" rx="${isCharacter ? '18' : '4'}"/>
+                <rect width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" rx="${isCharacter ? '18' : '4'}"/>
               </clipPath>
-              <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '44'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
+              <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
             ` : ''}
-            <text x="44" y="18" fill="#ffffff" font-size="12" font-weight="bold" font-family="sans-serif">${title.length > 18 ? title.substring(0, 15) + '...' : title}</text>
-            <text x="44" y="34" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
+            ${renderWrappedTitle(title, 44, isCharacter)}
+            <text x="44" y="38" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
           </g>
         `;
       }).join('');
     };
 
     const svg = `
-      <svg width="740" height="380" viewBox="0 0 740 380" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="740" height="380" rx="16" fill="#0f172a" stroke="#ffffff" stroke-opacity="0.1"/>
-        
-        <!-- Header -->
-        <g transform="translate(24, 24)">
-          ${user?.avatar?.large ? `
-            <clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
-            <image href="${user.avatar.large}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
-          ` : ''}
-          <text x="60" y="31" fill="#ffffff" font-size="22" font-weight="bold" font-family="sans-serif">${user?.name || username}</text>
+      <svg width="740" height="430" viewBox="0 0 740 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="card-clip">
+            <rect width="740" height="430" rx="16"/>
+          </clipPath>
+        </defs>
+
+        <g clip-path="url(#card-clip)">
+          <!-- Background Image -->
+          ${BG_IMAGE_URL ? `<image href="${BG_IMAGE_URL}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
-          <circle cx="560" cy="20" r="4" fill="#4ade80"/>
-          <text x="572" y="24" fill="#4ade80" font-size="11" font-weight="bold" font-family="sans-serif" letter-spacing="0.5">SYNCED WITH ANILIST</text>
-        </g>
+          <!-- Dark Overlay -->
+          <rect width="740" height="430" fill="#0f172a" fill-opacity="0.88"/>
+          <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.1"/>
 
-        <!-- Stats Bar -->
-        <g transform="translate(24, 90)">
-          <rect width="692" height="54" rx="8" fill="#ffffff" fill-opacity="0.05"/>
-          
-          <text x="170" y="22" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="sans-serif">ANIME WATCH TIME</text>
-          <text x="170" y="42" fill="#38bdf8" font-size="16" font-weight="bold" text-anchor="middle" font-family="sans-serif">${animeHours.toLocaleString()} HRS (${animeDays} Days)</text>
+          <!-- Header -->
+          <g transform="translate(24, 20)">
+            ${user?.avatar?.large ? `
+              <clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
+              <image href="${user.avatar.large}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
+            ` : ''}
+            <text x="60" y="24" fill="#ffffff" font-size="20" font-weight="bold" font-family="sans-serif">${user?.name || username}</text>
+            <text x="60" y="40" fill="#94a3b8" font-size="11" font-family="sans-serif">${bioText}</text>
+            
+            <circle cx="560" cy="16" r="4" fill="#4ade80"/>
+            <text x="572" y="20" fill="#4ade80" font-size="11" font-weight="bold" font-family="sans-serif" letter-spacing="0.5">SYNCED WITH ANILIST</text>
+          </g>
 
-          <line x1="346" y1="12" x2="346" y2="42" stroke="#ffffff" stroke-opacity="0.1"/>
+          <!-- Stacked Overall Stats Bar -->
+          <g transform="translate(24, 82)">
+            <rect width="692" height="88" rx="10" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.05"/>
+            
+            <!-- Anime Row -->
+            <g transform="translate(16, 12)">
+              <text x="0" y="16" fill="#38bdf8" font-size="10" font-weight="bold" font-family="sans-serif">ANIME</text>
+              
+              <text x="110" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeCount}</text>
+              <text x="110" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Total Anime</text>
 
-          <text x="520" y="22" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="sans-serif">MANGA READ</text>
-          <text x="520" y="42" fill="#34d399" font-size="16" font-weight="bold" text-anchor="middle" font-family="sans-serif">${chapters.toLocaleString()} CHAPS</text>
-        </g>
+              <text x="250" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${episodes.toLocaleString()}</text>
+              <text x="250" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Episodes</text>
 
-        <!-- Content Columns -->
-        <g transform="translate(24, 170)">
-          <!-- Top Anime -->
-          <g transform="translate(0, 0)">
-            <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
-            <g transform="translate(0, 30)">
-              ${renderItems(animeList, i => i?.episodes ? `${i.episodes} Eps` : 'N/A')}
+              <text x="390" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeDays}</text>
+              <text x="390" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Days Watched</text>
+
+              <text x="540" y="14" fill="#38bdf8" font-size="14" font-weight="bold" font-family="sans-serif">${animeMean}</text>
+              <text x="540" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Mean Score</text>
+            </g>
+
+            <line x1="16" y1="46" x2="676" y2="46" stroke="#ffffff" stroke-opacity="0.08"/>
+
+            <!-- Manga Row -->
+            <g transform="translate(16, 52)">
+              <text x="0" y="16" fill="#34d399" font-size="10" font-weight="bold" font-family="sans-serif">MANGA</text>
+
+              <text x="110" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${mangaCount}</text>
+              <text x="110" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Total Manga</text>
+
+              <text x="250" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${chapters.toLocaleString()}</text>
+              <text x="250" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Chapters</text>
+
+              <text x="390" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${volumes.toLocaleString()}</text>
+              <text x="390" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Volumes</text>
+
+              <text x="540" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${mangaMean}</text>
+              <text x="540" y="26" fill="#94a3b8" font-size="9" font-family="sans-serif">Mean Score</text>
             </g>
           </g>
 
-          <!-- Top Manga -->
-          <g transform="translate(230, 0)">
-            <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
-            <g transform="translate(0, 30)">
-              ${renderItems(mangaList, i => i?.chapters ? `${i.chapters} Chaps` : 'N/A')}
+          <!-- Content Columns -->
+          <g transform="translate(24, 192)">
+            <!-- Top Anime -->
+            <g transform="translate(0, 0)">
+              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
+              <g transform="translate(0, 30)">
+                ${renderItems(animeList, i => i?.episodes ? `${i.episodes} Eps` : 'N/A')}
+              </g>
             </g>
-          </g>
 
-          <!-- Top Characters -->
-          <g transform="translate(460, 0)">
-            <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
-            <g transform="translate(0, 30)">
-              ${renderItems(characterList, () => 'Favorite', true)}
+            <!-- Top Manga -->
+            <g transform="translate(230, 0)">
+              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
+              <g transform="translate(0, 30)">
+                ${renderItems(mangaList, i => i?.chapters ? `${i.chapters} Chaps` : 'N/A')}
+              </g>
+            </g>
+
+            <!-- Top Characters -->
+            <g transform="translate(460, 0)">
+              <text x="0" y="15" fill="#94a3b8" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
+              <g transform="translate(0, 30)">
+                ${renderItems(characterList, () => 'Favorite', true)}
+              </g>
             </g>
           </g>
         </g>
