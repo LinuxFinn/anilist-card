@@ -175,6 +175,183 @@ export default async function handler(req, res) {
       }).join('');
     };
 
+// CUSTOM CONFIGURATION
+const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg'; // Change to your background URL
+const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
+
+// Helper to escape special XML characters for SVG compliance
+function escapeXml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+async function fetchAniListStats(username) {
+  const query = `
+    query ($username: String) {
+      User(name: $username) {
+        name
+        about
+        avatar { large }
+        statistics {
+          anime {
+            count
+            episodesWatched
+            minutesWatched
+            meanScore
+          }
+          manga {
+            count
+            chaptersRead
+            volumesRead
+            meanScore
+          }
+        }
+        favourites {
+          anime(page: 1, perPage: 3) {
+            nodes {
+              title { 
+                english
+                romaji
+              }
+              coverImage { medium }
+              episodes
+            }
+          }
+          manga(page: 1, perPage: 3) {
+            nodes {
+              title { 
+                english
+                romaji
+              }
+              coverImage { medium }
+              chapters
+            }
+          }
+          characters(page: 1, perPage: 3) {
+            nodes {
+              name { 
+                first
+                last
+                full
+              }
+              image { medium }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const res = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ query, variables: { username } }),
+  });
+
+  const json = await res.json();
+  if (json.errors) throw new Error(json.errors[0]?.message || 'User not found');
+  return json.data.User;
+}
+
+export default async function handler(req, res) {
+  try {
+    const username = req.query?.username || 'LinuxFinn';
+    const user = await fetchAniListStats(username);
+
+    // Anime Stats
+    const animeCount = user?.statistics?.anime?.count || 0;
+    const episodes = user?.statistics?.anime?.episodesWatched || 0;
+    const animeDays = ( (user?.statistics?.anime?.minutesWatched || 0) / 1440 ).toFixed(1);
+    const animeMean = user?.statistics?.anime?.meanScore || 0;
+
+    // Manga Stats
+    const mangaCount = user?.statistics?.manga?.count || 0;
+    const chapters = user?.statistics?.manga?.chaptersRead || 0;
+    const volumes = user?.statistics?.manga?.volumesRead || 0;
+    const mangaMean = user?.statistics?.manga?.meanScore || 0;
+
+    // Favorites
+    const animeList = user?.favourites?.anime?.nodes || [];
+    const mangaList = user?.favourites?.manga?.nodes || [];
+    const characterList = user?.favourites?.characters?.nodes || [];
+
+    // Clean bio (strip markdown/HTML tags and escape XML)
+    const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '').replace(/[\r\n]+/g, ' ') : CUSTOM_BIO;
+    const truncatedBio = rawBio.length > 55 ? rawBio.substring(0, 52) + '...' : rawBio;
+    const bioText = escapeXml(truncatedBio);
+
+    // Formatting Name Helper
+    const getFormattedName = (item, isCharacter) => {
+      if (isCharacter) {
+        const first = item?.name?.first;
+        const last = item?.name?.last;
+        return (first && last) ? `${first} ${last}` : (item?.name?.full || 'N/A');
+      }
+      return item?.title?.english || item?.title?.romaji || 'N/A';
+    };
+
+    // Helper for multiline wrapping titles
+    const renderWrappedTitle = (text, x) => {
+      const maxCharsPerLine = 15;
+      
+      if (text.length <= maxCharsPerLine) {
+        return `<text x="${x}" y="18" fill="#ffffff" font-size="11" font-weight="bold" font-family="sans-serif">${escapeXml(text)}</text>`;
+      }
+
+      const words = text.split(' ');
+      let line1 = '';
+      let line2 = '';
+      
+      for (const word of words) {
+        if ((line1 + word).length <= maxCharsPerLine) {
+          line1 += (line1 ? ' ' : '') + word;
+        } else {
+          line2 += (line2 ? ' ' : '') + word;
+        }
+      }
+      
+      if (line2.length > maxCharsPerLine) {
+        line2 = line2.substring(0, maxCharsPerLine - 3) + '...';
+      }
+
+      return `
+        <text x="${x}" y="14" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${escapeXml(line1)}</text>
+        <text x="${x}" y="26" fill="#ffffff" font-size="10" font-weight="bold" font-family="sans-serif">${escapeXml(line2)}</text>
+      `;
+    };
+
+    // Render Items
+    const renderItems = (items, getType, isCharacter = false) => {
+      return items.slice(0, 3).map((item, idx) => {
+        const title = getFormattedName(item, isCharacter);
+        const sub = escapeXml(getType(item));
+        const img = escapeXml(item?.coverImage?.medium || item?.image?.medium || '');
+        const y = idx * 56;
+
+        return `
+          <g transform="translate(0, ${y})">
+            ${img ? `
+              <clipPath id="clip-${isCharacter ? 'char' : 'media'}-${idx}">
+                <rect width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" rx="${isCharacter ? '18' : '4'}"/>
+              </clipPath>
+              <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
+            ` : ''}
+            ${renderWrappedTitle(title, 44)}
+            <text x="44" y="38" fill="#cbd5e1" font-size="10" font-family="sans-serif">${sub}</text>
+          </g>
+        `;
+      }).join('');
+    };
+
     const svg = `
       <svg width="740" height="430" viewBox="0 0 740 430" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -188,7 +365,7 @@ export default async function handler(req, res) {
           ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
           <!-- Translucent Dark Overlay (Adjust fill-opacity to tweak overall card transparency) -->
-          <rect width="740" height="430" fill="#0b1120" fill-opacity="0.30"/>
+          <rect width="740" height="430" fill="#0b1120" fill-opacity="0.65"/>
           <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.15"/>
 
           <!-- Header -->
@@ -274,6 +451,15 @@ export default async function handler(req, res) {
         </g>
       </svg>
     `;
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.status(200).send(svg);
+  } catch (error) {
+    res.setHeader('Content-Type', 'text/plain');
+    return res.status(500).send(`Error: ${error.message}`);
+  }
+}
 
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=3600');
