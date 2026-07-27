@@ -185,7 +185,7 @@ export default async function handler(req, res) {
 
         <g clip-path="url(#card-clip)">
           <!-- Background Image (Sharp & Unblurred) -->
-          ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
+          ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid meet"/>` : ''}
           
           <!-- Dimming Layer -->
           <rect width="740" height="430" fill="#000000" fill-opacity="0.45"/>
