@@ -298,11 +298,15 @@ export default async function handler(req, res) {
       </svg>
     `;
 
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    return res.status(200).send(svg);
-  } catch (error) {
-    res.setHeader('Content-Type', 'text/plain');
-    return res.status(500).send(`Error: ${error.message}`);
+  // Force browsers and Vercel CDN not to cache stale data
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader(
+    'Cache-Control',
+    'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+  );
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
+  return res.status(200).send(svg);
   }
 }
