@@ -173,15 +173,15 @@ export default async function handler(req, res) {
         // Dimensions for circles vs rectangular media covers
         const imgWidth = isPerson ? 36 : 32;
         const imgHeight = isPerson ? 36 : 46;
-        const uniqueId = `${isPerson ? 'person' : 'media'}-${idx}-${Math.random().toString(36.substring(2, 7))}`;
+        const clipId = `clip-${isPerson ? 'p' : 'm'}-${idx}`;
 
         return `
           <g transform="translate(0, ${y})">
             ${img ? `
-              <clipPath id="clip-${uniqueId}">
+              <clipPath id="${clipId}">
                 ${isPerson ? `<circle cx="18" cy="18" r="18"/>` : `<rect width="${imgWidth}" height="${imgHeight}" rx="4"/>`}
               </clipPath>
-              <image href="${img}" width="${imgWidth}" height="${imgHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${uniqueId})"/>
+              <image href="${img}" width="${imgWidth}" height="${imgHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>
             ` : ''}
             ${renderWrappedTitle(title, 44)}
             <text x="44" y="38" fill="#e2e8f0" font-size="10" font-family="sans-serif">${sub}</text>
@@ -252,7 +252,6 @@ export default async function handler(req, res) {
               <text x="320" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${chapters.toLocaleString()}</text>
               <text x="320" y="26" fill="#e2e8f0" font-size="9" font-family="sans-serif">Chapters</text>
 
-              <text x="520" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${volumes.toLocaleString()}</text>
               <text x="520" y="14" fill="#34d399" font-size="14" font-weight="bold" font-family="sans-serif">${volumes.toLocaleString()}</text>
               <text x="520" y="26" fill="#e2e8f0" font-size="9" font-family="sans-serif">Volumes</text>
 
