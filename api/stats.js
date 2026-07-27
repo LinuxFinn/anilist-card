@@ -137,7 +137,7 @@ export default async function handler(req) {
 
             {/* Columns */}
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-              {/* Anime */}
+              {/* Top Anime */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 ANIME
@@ -155,7 +155,7 @@ export default async function handler(req) {
                 ))}
               </div>
 
-              {/* Manga */}
+              {/* Top Manga */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 MANGA
@@ -173,7 +173,7 @@ export default async function handler(req) {
                 ))}
               </div>
 
-              {/* Characters */}
+              {/* Top Characters */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 CHARACTERS
