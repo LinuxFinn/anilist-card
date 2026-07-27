@@ -1,6 +1,6 @@
 // CUSTOM CONFIGURATION
 const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/anilist-card/main/1266658.jpg'; // Direct raw repo link
-const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
+const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Bio displayed on the card
 
 // Helper to escape special XML characters for SVG compliance
 function escapeXml(unsafe) {
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
     ]);
 
     // Clean bio
-    const rawBio = user?.about ? user.about.replace(/<[^>]*>?/gm, '').replace(/[\r\n]+/g, ' ') : CUSTOM_BIO;
+    const rawBio = CUSTOM_BIO;
     const truncatedBio = rawBio.length > 70 ? rawBio.substring(0, 67) + '...' : rawBio;
     const bioText = escapeXml(truncatedBio);
 
