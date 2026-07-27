@@ -1,6 +1,6 @@
 // CUSTOM CONFIGURATION
 const BG_IMAGE_URL = 'https://raw.githubusercontent.com/LinuxFinn/anilist-card/main/1266658.jpg'; // Direct raw repo link
-const CUSTOM_BIO = 'Anime & Manga Enthusiast'; // Fallback bio if empty on AniList
+const CUSTOM_BIO = 'Just a guy whole fell in love with the Eastern way of storytelling.'; // Fallback bio if empty on AniList
 
 // Helper to escape special XML characters for SVG compliance
 function escapeXml(unsafe) {
