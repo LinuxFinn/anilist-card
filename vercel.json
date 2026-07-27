@@ -1,12 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/api/stats"
-    },
-    {
-      "source": "/api/stats",
-      "destination": "/api/stats"
-    }
+    { "source": "/", "destination": "/api/stats" },
+    { "source": "/api/stats", "destination": "/api/stats" }
   ]
 }
