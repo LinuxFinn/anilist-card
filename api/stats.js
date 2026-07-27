@@ -15,21 +15,31 @@ async function fetchAniListStats(username) {
         favourites {
           anime(page: 1, perPage: 3) {
             nodes {
-              title { userPreferred }
+              title { 
+                english
+                romaji
+              }
               coverImage { medium }
               episodes
             }
           }
           manga(page: 1, perPage: 3) {
             nodes {
-              title { userPreferred }
+              title { 
+                english
+                romaji
+              }
               coverImage { medium }
               chapters
             }
           }
           characters(page: 1, perPage: 3) {
             nodes {
-              name { full }
+              name { 
+                first
+                last
+                full
+              }
               image { medium }
             }
           }
@@ -57,7 +67,6 @@ export default async function handler(req, res) {
     const username = req.query?.username || 'LinuxFinn';
     const user = await fetchAniListStats(username);
 
-    // Correct AniList GraphQL paths for watch time and manga chapters
     const minutesWatched = user?.statistics?.anime?.minutesWatched || 0;
     const animeHours = Math.floor(minutesWatched / 60);
     const animeDays = Math.floor(animeHours / 24);
@@ -67,10 +76,25 @@ export default async function handler(req, res) {
     const mangaList = user?.favourites?.manga?.nodes || [];
     const characterList = user?.favourites?.characters?.nodes || [];
 
+    // Helper to get formatted title/name
+    const getFormattedName = (item, isCharacter) => {
+      if (isCharacter) {
+        const first = item?.name?.first;
+        const last = item?.name?.last;
+        // If both first and last exist, format as Western "First Last"
+        if (first && last) {
+          return `${first} ${last}`;
+        }
+        return item?.name?.full || 'N/A';
+      }
+      // Prioritize official English title over Romaji
+      return item?.title?.english || item?.title?.romaji || 'N/A';
+    };
+
     // Render List Items with proper proportions
     const renderItems = (items, getType, isCharacter = false) => {
       return items.slice(0, 3).map((item, idx) => {
-        const title = item?.title?.userPreferred || item?.name?.full || 'N/A';
+        const title = getFormattedName(item, isCharacter);
         const sub = getType(item);
         const img = item?.coverImage?.medium || item?.image?.medium || '';
         const y = idx * 52;
