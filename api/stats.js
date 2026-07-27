@@ -1,10 +1,7 @@
 import { ImageResponse } from '@vercel/og';
 
-export const config = {
-  runtime: 'edge',
-};
+export const runtime = 'edge';
 
-// 1. Fetch user data from AniList GraphQL API
 async function fetchAniListStats(username) {
   const query = `
     query ($username: String) {
@@ -12,8 +9,6 @@ async function fetchAniListStats(username) {
         name
         avatar { large }
         stats {
-          animeStatusDistribution { count }
-          mangaStatusDistribution { count }
           watchedTime
           chaptersRead
         }
@@ -63,19 +58,18 @@ export default async function handler(req) {
 
     const user = await fetchAniListStats(username);
 
-    // Calculate time metrics
     const minutesWatched = user.stats.watchedTime || 0;
     const animeHours = Math.floor(minutesWatched / 60);
     const animeDays = Math.floor(animeHours / 24);
     const chapters = user.stats.chaptersRead || 0;
 
-    // Background Image direct URL
-    const bgUrl = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg'; // Replace or update link if needed
+    const bgUrl = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg';
 
     return new ImageResponse(
-      (
-        <div
-          style={{
+      {
+        type: 'div',
+        props: {
+          style: {
             display: 'flex',
             width: '100%',
             height: '100%',
@@ -86,125 +80,174 @@ export default async function handler(req) {
             justifyContent: 'center',
             padding: '20px',
             fontFamily: 'sans-serif',
-          }}
-        >
-          {/* Card Container with Blur & Overlay */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              width: '740px',
-              backgroundColor: 'rgba(15, 23, 42, 0.85)',
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              padding: '24px',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-              color: '#ffffff',
-            }}
-          >
-            {/* Header / Profile */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <img
-                  src={user.avatar.large}
-                  style={{ width: '50px', height: '50px', borderRadius: '50%', border: '2px solid #38bdf8' }}
-                />
-                <span style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.name}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '14px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
-                <span>SYNCED WITH ANILIST</span>
-              </div>
-            </div>
-
-            {/* Watch/Read Stats Bar */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-around',
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '20px',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>ANIME WATCH TIME</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#38bdf8' }}>
-                  {animeHours.toLocaleString()} HRS <span style={{ fontSize: '14px', color: '#94a3b8' }}>({animeDays} Days)</span>
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>MANGA READ</span>
-                <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#34d399' }}>
-                  {chapters.toLocaleString()} CHAPS
-                </span>
-              </div>
-            </div>
-
-            {/* Top 3 Columns Grid */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-              
-              {/* Anime Column */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
-                  TOP 3 ANIME
-                </span>
-                {user.favourites.anime.nodes.slice(0, 3).map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.coverImage.medium} style={{ width: '36px', height: '48px', borderRadius: '4px' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.title.userPreferred}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item.episodes || '?'} Eps</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Manga Column */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
-                  TOP 3 MANGA
-                </span>
-                {user.favourites.manga.nodes.slice(0, 3).map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.coverImage.medium} style={{ width: '36px', height: '48px', borderRadius: '4px' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.title.userPreferred}
-                      </span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item.chapters || '?'} Chaps</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Characters Column */}
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
-                  TOP 3 CHARACTERS
-                </span>
-                {user.favourites.characters.nodes.slice(0, 3).map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.image.medium} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.name.full}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: 800,
-        height: 480,
-      }
+          },
+          children: [
+            {
+              type: 'div',
+              props: {
+                style: {
+                  display: 'flex',
+                  flexDirection: 'column',
+                  width: '740px',
+                  backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                  borderRadius: '16px',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '24px',
+                  color: '#ffffff',
+                },
+                children: [
+                  // Header
+                  {
+                    type: 'div',
+                    props: {
+                      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' },
+                      children: [
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', alignItems: 'center', gap: '12px' },
+                            children: [
+                              { type: 'img', props: { src: user.avatar.large, style: { width: '50px', height: '50px', borderRadius: '50%', border: '2px solid #38bdf8' } } },
+                              { type: 'span', props: { style: { fontSize: '24px', fontWeight: 'bold' }, children: user.name } }
+                            ]
+                          }
+                        },
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '14px' },
+                            children: [
+                              { type: 'div', props: { style: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ade80' } } },
+                              { type: 'span', props: { children: 'SYNCED WITH ANILIST' } }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  // Stats bar
+                  {
+                    type: 'div',
+                    props: {
+                      style: { display: 'flex', justifyContent: 'space-around', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '12px', marginBottom: '20px' },
+                      children: [
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+                            children: [
+                              { type: 'span', props: { style: { fontSize: '12px', color: '#94a3b8' }, children: 'ANIME WATCH TIME' } },
+                              { type: 'span', props: { style: { fontSize: '20px', fontWeight: 'bold', color: '#38bdf8' }, children: `${animeHours.toLocaleString()} HRS (${animeDays} Days)` } }
+                            ]
+                          }
+                        },
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+                            children: [
+                              { type: 'span', props: { style: { fontSize: '12px', color: '#94a3b8' }, children: 'MANGA READ' } },
+                              { type: 'span', props: { style: { fontSize: '20px', fontWeight: 'bold', color: '#34d399' }, children: `${chapters.toLocaleString()} CHAPS` } }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  // Columns
+                  {
+                    type: 'div',
+                    props: {
+                      style: { display: 'flex', justifyContent: 'space-between', gap: '16px' },
+                      children: [
+                        // Top Anime
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', flexDirection: 'column', flex: 1 },
+                            children: [
+                              { type: 'span', props: { style: { fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }, children: 'TOP 3 ANIME' } },
+                              ...user.favourites.anime.nodes.slice(0, 3).map((item) => ({
+                                type: 'div',
+                                props: {
+                                  style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
+                                  children: [
+                                    { type: 'img', props: { src: item.coverImage.medium, style: { width: '36px', height: '48px', borderRadius: '4px' } } },
+                                    {
+                                      type: 'div',
+                                      props: {
+                                        style: { display: 'flex', flexDirection: 'column' },
+                                        children: [
+                                          { type: 'span', props: { style: { fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }, children: item.title.userPreferred } },
+                                          { type: 'span', props: { style: { fontSize: '11px', color: '#94a3b8' }, children: `${item.episodes || '?'} Eps` } }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }))
+                            ]
+                          }
+                        },
+                        // Top Manga
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', flexDirection: 'column', flex: 1 },
+                            children: [
+                              { type: 'span', props: { style: { fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }, children: 'TOP 3 MANGA' } },
+                              ...user.favourites.manga.nodes.slice(0, 3).map((item) => ({
+                                type: 'div',
+                                props: {
+                                  style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
+                                  children: [
+                                    { type: 'img', props: { src: item.coverImage.medium, style: { width: '36px', height: '48px', borderRadius: '4px' } } },
+                                    {
+                                      type: 'div',
+                                      props: {
+                                        style: { display: 'flex', flexDirection: 'column' },
+                                        children: [
+                                          { type: 'span', props: { style: { fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }, children: item.title.userPreferred } },
+                                          { type: 'span', props: { style: { fontSize: '11px', color: '#94a3b8' }, children: `${item.chapters || '?'} Chaps` } }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }))
+                            ]
+                          }
+                        },
+                        // Top Characters
+                        {
+                          type: 'div',
+                          props: {
+                            style: { display: 'flex', flexDirection: 'column', flex: 1 },
+                            children: [
+                              { type: 'span', props: { style: { fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }, children: 'TOP 3 CHARACTERS' } },
+                              ...user.favourites.characters.nodes.slice(0, 3).map((item) => ({
+                                type: 'div',
+                                props: {
+                                  style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
+                                  children: [
+                                    { type: 'img', props: { src: item.image.medium, style: { width: '40px', height: '40px', borderRadius: '50%' } } },
+                                    { type: 'span', props: { style: { fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }, children: item.name.full } }
+                                  ]
+                                }
+                              }))
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      { width: 800, height: 480 }
     );
   } catch (e) {
     return new Response(`Failed to generate card: ${e.message}`, { status: 500 });
