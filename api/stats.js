@@ -169,7 +169,7 @@ export default async function handler(req, res) {
               <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '46'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
             ` : ''}
             ${renderWrappedTitle(title, 44)}
-            <text x="44" y="38" fill="#cbd5e1" font-size="10" font-family="sans-serif">${sub}</text>
+            <text x="44" y="38" fill="#e2e8f0" font-size="10" font-family="sans-serif">${sub}</text>
           </g>
         `;
       }).join('');
@@ -184,10 +184,10 @@ export default async function handler(req, res) {
         </defs>
 
         <g clip-path="url(#card-clip)">
-          <!-- Background Image -->
+          <!-- Background Image (Sharp & Unblurred) -->
           ${BG_IMAGE_URL ? `<image href="${escapeXml(BG_IMAGE_URL)}" width="740" height="430" preserveAspectRatio="xMidYMid slice"/>` : ''}
           
-          <!-- Pure Black Dimming Layer (Adjust fill-opacity to tweak overall brightness) -->
+          <!-- Dimming Layer -->
           <rect width="740" height="430" fill="#000000" fill-opacity="0.45"/>
           <rect width="740" height="430" rx="16" stroke="#ffffff" stroke-opacity="0.15"/>
 
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
             <text x="572" y="20" fill="#4ade80" font-size="11" font-weight="bold" font-family="sans-serif" letter-spacing="0.5">SYNCED WITH ANILIST</text>
           </g>
 
-          <!-- Stacked Overall Stats Bar -->
+          <!-- Stacked Overall Stats Bar (Dark box background restored) -->
           <g transform="translate(24, 82)">
             <rect width="692" height="88" rx="10" fill="#000000" fill-opacity="0.35" stroke="#ffffff" stroke-opacity="0.12"/>
             
