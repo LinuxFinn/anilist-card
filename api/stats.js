@@ -161,8 +161,8 @@ export default async function handler(req, res) {
       `;
     };
 
-    // Render Items with 1st/2nd/3rd subtext
-    const renderItems = (items, isPerson = false) => {
+    // Render Items with unique category prefixes for unique clipPath IDs
+    const renderItems = (items, categoryPrefix, isPerson = false) => {
       const ranks = ['1st', '2nd', '3rd'];
       return items.slice(0, 3).map((item, idx) => {
         const title = getFormattedName(item, isPerson);
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
         // Dimensions for circles vs rectangular media covers
         const imgWidth = isPerson ? 36 : 32;
         const imgHeight = isPerson ? 36 : 46;
-        const clipId = `clip-${isPerson ? 'p' : 'm'}-${idx}`;
+        const clipId = `clip-${categoryPrefix}-${idx}`;
 
         return `
           <g transform="translate(0, ${y})">
@@ -266,7 +266,7 @@ export default async function handler(req, res) {
             <g transform="translate(0, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
               <g transform="translate(0, 30)">
-                ${renderItems(animeList, false)}
+                ${renderItems(animeList, 'anime', false)}
               </g>
             </g>
 
@@ -274,7 +274,7 @@ export default async function handler(req, res) {
             <g transform="translate(225, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
               <g transform="translate(0, 30)">
-                ${renderItems(mangaList, false)}
+                ${renderItems(mangaList, 'manga', false)}
               </g>
             </g>
 
@@ -282,7 +282,7 @@ export default async function handler(req, res) {
             <g transform="translate(450, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
               <g transform="translate(0, 30)">
-                ${renderItems(characterList, true)}
+                ${renderItems(characterList, 'char', true)}
               </g>
             </g>
 
@@ -290,7 +290,7 @@ export default async function handler(req, res) {
             <g transform="translate(675, 0)">
               <text x="0" y="15" fill="#e2e8f0" font-size="11" font-weight="bold" font-family="sans-serif">TOP 3 STAFF</text>
               <g transform="translate(0, 30)">
-                ${renderItems(staffList, true)}
+                ${renderItems(staffList, 'staff', true)}
               </g>
             </g>
           </g>
@@ -298,14 +298,18 @@ export default async function handler(req, res) {
       </svg>
     `;
 
-  // Force browsers and Vercel CDN not to cache stale data
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader(
-    'Cache-Control',
-    'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
-  );
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
-  return res.status(200).send(svg);
+    // Force browsers and Vercel CDN not to cache stale data
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader(
+      'Cache-Control',
+      'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0'
+    );
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    return res.status(200).send(svg);
+  } catch (error) {
+    res.setHeader('Content-Type', 'text/plain');
+    return res.status(500).send(`Error: ${error.message}`);
   }
+}
