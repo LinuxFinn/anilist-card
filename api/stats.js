@@ -47,7 +47,15 @@ async function fetchAniListStats(username) {
     body: JSON.stringify({ query, variables: { username } }),
   });
 
+  if (!res.ok) {
+    throw new Error(`AniList API error: ${res.statusText}`);
+  }
+
   const json = await res.json();
+  if (json.errors) {
+    throw new Error(json.errors[0]?.message || 'Failed to fetch user');
+  }
+
   return json.data.User;
 }
 
@@ -58,12 +66,19 @@ export default async function handler(req) {
 
     const user = await fetchAniListStats(username);
 
-    const minutesWatched = user.stats.watchedTime || 0;
+    // Safe fallbacks for numbers
+    const minutesWatched = user?.stats?.watchedTime || 0;
     const animeHours = Math.floor(minutesWatched / 60);
     const animeDays = Math.floor(animeHours / 24);
-    const chapters = user.stats.chaptersRead || 0;
+    const chapters = user?.stats?.chaptersRead || 0;
+
+    // Safe fallbacks for lists
+    const animeList = user?.favourites?.anime?.nodes || [];
+    const mangaList = user?.favourites?.manga?.nodes || [];
+    const characterList = user?.favourites?.characters?.nodes || [];
 
     const bgUrl = 'https://raw.githubusercontent.com/LinuxFinn/assets/main/1266658.jpg';
+    const avatarUrl = user?.avatar?.large || 'https://s4.anilist.co/file/anilistcdn/user/avatar/large/default.png';
 
     return new ImageResponse(
       (
@@ -81,6 +96,7 @@ export default async function handler(req) {
             fontFamily: 'sans-serif',
           }}
         >
+          {/* Card Container */}
           <div
             style={{
               display: 'flex',
@@ -97,10 +113,10 @@ export default async function handler(req) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <img
-                  src={user.avatar.large}
+                  src={avatarUrl}
                   style={{ width: '50px', height: '50px', borderRadius: '50%', border: '2px solid #38bdf8' }}
                 />
-                <span style={{ fontSize: '24px', fontWeight: 'bold' }}>{user.name}</span>
+                <span style={{ fontSize: '24px', fontWeight: 'bold' }}>{user?.name || username}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '14px' }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#4ade80' }} />
@@ -135,52 +151,52 @@ export default async function handler(req) {
 
             {/* Columns */}
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-              {/* Top Anime */}
+              {/* Anime Column */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 ANIME
                 </span>
-                {user.favourites.anime.nodes.slice(0, 3).map((item, idx) => (
+                {animeList.slice(0, 3).map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.coverImage.medium} style={{ width: '36px', height: '48px', borderRadius: '4px' }} />
+                    <img src={item?.coverImage?.medium || ''} style={{ width: '36px', height: '48px', borderRadius: '4px', backgroundColor: '#334155' }} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {item.title.userPreferred}
+                        {item?.title?.userPreferred || 'N/A'}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item.episodes || '?'} Eps</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item?.episodes ? `${item.episodes} Eps` : 'N/A'}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Top Manga */}
+              {/* Manga Column */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 MANGA
                 </span>
-                {user.favourites.manga.nodes.slice(0, 3).map((item, idx) => (
+                {mangaList.slice(0, 3).map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.coverImage.medium} style={{ width: '36px', height: '48px', borderRadius: '4px' }} />
+                    <img src={item?.coverImage?.medium || ''} style={{ width: '36px', height: '48px', borderRadius: '4px', backgroundColor: '#334155' }} />
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {item.title.userPreferred}
+                        {item?.title?.userPreferred || 'N/A'}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item.chapters || '?'} Chaps</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>{item?.chapters ? `${item.chapters} Chaps` : 'N/A'}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Top Characters */}
+              {/* Characters Column */}
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '8px', fontWeight: 'bold' }}>
                   TOP 3 CHARACTERS
                 </span>
-                {user.favourites.characters.nodes.slice(0, 3).map((item, idx) => (
+                {characterList.slice(0, 3).map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <img src={item.image.medium} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                    <img src={item?.image?.medium || ''} style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#334155' }} />
                     <span style={{ fontSize: '13px', fontWeight: 'bold', width: '130px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                      {item.name.full}
+                      {item?.name?.full || 'N/A'}
                     </span>
                   </div>
                 ))}
@@ -195,6 +211,6 @@ export default async function handler(req) {
       }
     );
   } catch (e) {
-    return new Response(`Failed to generate card: ${e.message}`, { status: 500 });
+    return new Response(`Error: ${e.message}`, { status: 500 });
   }
 }
