@@ -59,20 +59,18 @@ async function fetchAniListStats(username) {
   return json.data.User;
 }
 
-export default async function handler(req) {
+export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const username = searchParams.get('username') || 'LinuxFinn';
 
     const user = await fetchAniListStats(username);
 
-    // Safe fallbacks for numbers
     const minutesWatched = user?.stats?.watchedTime || 0;
     const animeHours = Math.floor(minutesWatched / 60);
     const animeDays = Math.floor(animeHours / 24);
     const chapters = user?.stats?.chaptersRead || 0;
 
-    // Safe fallbacks for lists
     const animeList = user?.favourites?.anime?.nodes || [];
     const mangaList = user?.favourites?.manga?.nodes || [];
     const characterList = user?.favourites?.characters?.nodes || [];
@@ -96,7 +94,6 @@ export default async function handler(req) {
             fontFamily: 'sans-serif',
           }}
         >
-          {/* Card Container */}
           <div
             style={{
               display: 'flex',
