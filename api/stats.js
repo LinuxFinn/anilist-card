@@ -4,9 +4,13 @@ async function fetchAniListStats(username) {
       User(name: $username) {
         name
         avatar { large }
-        stats {
-          watchedTime
-          chaptersRead
+        statistics {
+          anime {
+            minutesWatched
+          }
+          manga {
+            chaptersRead
+          }
         }
         favourites {
           anime(page: 1, perPage: 3) {
@@ -53,29 +57,34 @@ export default async function handler(req, res) {
     const username = req.query?.username || 'LinuxFinn';
     const user = await fetchAniListStats(username);
 
-    const minutesWatched = user?.stats?.watchedTime || 0;
+    // Correct AniList GraphQL paths for watch time and manga chapters
+    const minutesWatched = user?.statistics?.anime?.minutesWatched || 0;
     const animeHours = Math.floor(minutesWatched / 60);
     const animeDays = Math.floor(animeHours / 24);
-    const chapters = user?.stats?.chaptersRead || 0;
+    const chapters = user?.statistics?.manga?.chaptersRead || 0;
 
     const animeList = user?.favourites?.anime?.nodes || [];
     const mangaList = user?.favourites?.manga?.nodes || [];
     const characterList = user?.favourites?.characters?.nodes || [];
 
-    // Helper for rendering list items in SVG
-    const renderItems = (items, getType) => {
+    // Render List Items with proper proportions
+    const renderItems = (items, getType, isCharacter = false) => {
       return items.slice(0, 3).map((item, idx) => {
         const title = item?.title?.userPreferred || item?.name?.full || 'N/A';
         const sub = getType(item);
         const img = item?.coverImage?.medium || item?.image?.medium || '';
-        const y = idx * 50;
+        const y = idx * 52;
 
         return `
           <g transform="translate(0, ${y})">
-            ${img ? `<clipPath id="clip-${idx}"><rect width="32" height="42" rx="4"/></clipPath>
-            <image href="${img}" width="32" height="42" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${idx})"/>` : ''}
-            <text x="42" y="18" fill="#ffffff" font-size="12" font-weight="bold" font-family="sans-serif">${title.length > 18 ? title.substring(0, 15) + '...' : title}</text>
-            <text x="42" y="34" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
+            ${img ? `
+              <clipPath id="clip-${isCharacter ? 'char' : 'media'}-${idx}">
+                <rect width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '44'}" rx="${isCharacter ? '18' : '4'}"/>
+              </clipPath>
+              <image href="${img}" width="${isCharacter ? '36' : '32'}" height="${isCharacter ? '36' : '44'}" preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-${isCharacter ? 'char' : 'media'}-${idx})"/>
+            ` : ''}
+            <text x="44" y="18" fill="#ffffff" font-size="12" font-weight="bold" font-family="sans-serif">${title.length > 18 ? title.substring(0, 15) + '...' : title}</text>
+            <text x="44" y="34" fill="#94a3b8" font-size="10" font-family="sans-serif">${sub}</text>
           </g>
         `;
       }).join('');
@@ -87,12 +96,14 @@ export default async function handler(req, res) {
         
         <!-- Header -->
         <g transform="translate(24, 24)">
-          ${user?.avatar?.large ? `<clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
-          <image href="${user.avatar.large}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>` : ''}
-          <text x="60" y="30" fill="#ffffff" font-size="22" font-weight="bold" font-family="sans-serif">${user?.name || username}</text>
+          ${user?.avatar?.large ? `
+            <clipPath id="avatar-clip"><circle cx="24" cy="24" r="24"/></clipPath>
+            <image href="${user.avatar.large}" x="0" y="0" width="48" height="48" clip-path="url(#avatar-clip)"/>
+          ` : ''}
+          <text x="60" y="31" fill="#ffffff" font-size="22" font-weight="bold" font-family="sans-serif">${user?.name || username}</text>
           
-          <circle cx="680" cy="20" r="4" fill="#4ade80"/>
-          <text x="610" y="24" fill="#4ade80" font-size="12" font-family="sans-serif">SYNCED WITH ANILIST</text>
+          <circle cx="560" cy="20" r="4" fill="#4ade80"/>
+          <text x="572" y="24" fill="#4ade80" font-size="11" font-weight="bold" font-family="sans-serif" letter-spacing="0.5">SYNCED WITH ANILIST</text>
         </g>
 
         <!-- Stats Bar -->
@@ -110,7 +121,7 @@ export default async function handler(req, res) {
 
         <!-- Content Columns -->
         <g transform="translate(24, 170)">
-          <!-- Anime -->
+          <!-- Top Anime -->
           <g transform="translate(0, 0)">
             <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 ANIME</text>
             <g transform="translate(0, 30)">
@@ -118,7 +129,7 @@ export default async function handler(req, res) {
             </g>
           </g>
 
-          <!-- Manga -->
+          <!-- Top Manga -->
           <g transform="translate(230, 0)">
             <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 MANGA</text>
             <g transform="translate(0, 30)">
@@ -126,11 +137,11 @@ export default async function handler(req, res) {
             </g>
           </g>
 
-          <!-- Characters -->
+          <!-- Top Characters -->
           <g transform="translate(460, 0)">
             <text x="0" y="15" fill="#94a3b8" font-size="12" font-weight="bold" font-family="sans-serif">TOP 3 CHARACTERS</text>
             <g transform="translate(0, 30)">
-              ${renderItems(characterList, () => 'Favorite')}
+              ${renderItems(characterList, () => 'Favorite', true)}
             </g>
           </g>
         </g>
